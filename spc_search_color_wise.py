@@ -95,6 +95,6 @@ for row in ws.iter_rows():
     for cell in row:
         cell.border = border
         cell.alignment = align
-wb.save('output.xlsx')
+wb.save('color_wise_output.xlsx')
 
 print("\nSuccessfully completed :)")

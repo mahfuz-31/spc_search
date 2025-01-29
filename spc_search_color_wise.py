@@ -76,11 +76,11 @@ for index, row in ordersdf.iterrows():
             df.loc[row_idx, 'Cut Plan End Date'] = rows[3][6]
             row_idx += 1
 
-df.to_excel('output.xlsx', index=False)
+df.to_excel('color_wise_output.xlsx', index=False)
 from openpyxl import load_workbook
 from openpyxl.styles import Border, Side, Alignment
 
-wb = load_workbook('output.xlsx')
+wb = load_workbook('color_wise_output.xlsx')
 
 ws = wb['Sheet1']
 

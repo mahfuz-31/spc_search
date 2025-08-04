@@ -12,7 +12,7 @@ print('-------------- Mahfuz Special Search ----------------\n')
 ordersdf = pd.read_excel('orders.xlsx')
 
 df = pd.DataFrame()
-columns = ["Buyer", "Order", 'Style',	'UoF',	'F. Color',	'G. Color', 'Y. Type', 'F. Type', 'GSM', 'Dia',	'G/F Order With S.Note Qty', 'G/F S.Note Qty',	'Net Grey Receive Qty',	'G/F Rcv Balance Qty',	'F/F Order with S.Note Qty',	'F/F S.Note Qty',	'F/F Delv Qty',	'F/F Delv. Balance Qty',	'Replacement Delivery',	'F/F Excess Delv.Qty',	'Transfer To',	'Transfer From',	'Return Receive',	'Return Delivery',	'Dyeing Unit',	'Order Sheet Receive Date', 'Cut Plan Start Date',	'Cut Plan End Date']
+columns = ["Buyer", "Order", 'Style',	'UoF',	'F. Color',	'G. Color', 'Y. Type', 'F. Type', 'GSM', 'Dia',	'G/F Order With S.Note Qty', 'G/F S.Note Qty',	'Net Grey Receive Qty',	'G/F Rcv Balance Qty',	'F/F Order with S.Note Qty',	'F/F S.Note Qty',	'F/F Delv Qty',	'F/F Delv. Balance Qty',	'Replacement Delivery',	'F/F Excess Delv.Qty',	'Transfer To',	'Transfer From',	'Return Receive',	'Return Delivery',	'Dyeing Unit',	'Order Sheet Receive Date', 'Cut Plan Start Date',	'Cut Plan End Date', 'Unit Store']
 df = df.reindex(columns=df.columns.tolist() + columns)
 
 row_idx = 0
@@ -57,6 +57,11 @@ for index, row in ordersdf.iterrows():
     row_idx = row_idx2
     si = 0
     for row in rows:
+        if len(row) == 1:
+                if row[0].startswith('Define Unit::'):
+                    df.loc[row_idx, 'Unit Store'] = row[0].split('::')[1]
+                if row[0].startswith('Finish Fabric Delivery'):
+                    df.loc[row_idx, 'Unit Store'] = 'Jinnat'
         if len(row) > 0 and row[0] == 'SL NO.':
             si += 1
         if len(row) > 0 and si == 2 and row[0].isnumeric() and row[0] != '0':
@@ -75,6 +80,8 @@ for index, row in ordersdf.iterrows():
             df.loc[row_idx, 'Cut Plan Start Date'] = rows[3][5]
             df.loc[row_idx, 'Cut Plan End Date'] = rows[3][6]
             row_idx += 1
+        
+            
 
 df.to_excel('color_wise_output.xlsx', index=False)
 from openpyxl import load_workbook

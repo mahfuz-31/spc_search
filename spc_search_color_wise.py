@@ -18,8 +18,8 @@ df = df.reindex(columns=df.columns.tolist() + columns)
 row_idx = 0
 no_of_orders = len(ordersdf['FRS No.'])
 
-for index, row in ordersdf.iterrows():
-    order = row['FRS No.']
+for index, r in ordersdf.iterrows():
+    order = r['FRS No.']
     print("Process completed", int((index + 1) * 100 / no_of_orders), "%  <---->", 'FRS:', order)
     # print("\nCalculating for order: ", order)
     url = 'http://192.168.13.253/mymun/Work%20Order/combineSearchResult.php?Welcome=7&GetOrderNO=' + str(order)
@@ -37,6 +37,8 @@ for index, row in ordersdf.iterrows():
         if len(row) > 0 and row[0].isnumeric() and row[0] != '0':
             if int(row[0]) < si:
                 break
+            if convert_to_number(row[8]) == 0:
+                continue
             df.loc[row_idx, 'Buyer'] = rows[3][0]
             df.loc[row_idx, 'Order'] = rows[3][1]
             df.loc[row_idx, 'Style'] = rows[3][2]
@@ -65,6 +67,8 @@ for index, row in ordersdf.iterrows():
         if len(row) > 0 and row[0] == 'SL NO.':
             si += 1
         if len(row) > 0 and si == 2 and row[0].isnumeric() and row[0] != '0':
+            if convert_to_number(row[8]) == 0:
+                continue
             df.loc[row_idx, 'F/F Order with S.Note Qty'] = convert_to_number(row[8])
             df.loc[row_idx, 'F/F S.Note Qty'] = convert_to_number(row[9])
             df.loc[row_idx, 'F/F Delv Qty'] = convert_to_number(row[12])

@@ -8,11 +8,11 @@ def convert_to_number(s):
     # Convert to float if there's a decimal point, otherwise to convert_to_number
     return float(s) if '.' in s else int(s)
 
-print('\n-------------- Mahfuz Special Search ----------------\n')
+print('-------------- Mahfuz Special Search ----------------\n')
 ordersdf = pd.read_excel('orders.xlsx')
 
 df = pd.DataFrame()
-columns = ["Buyer", "Order", 'Style',	'UoF',	'F. Color',	'G. Color', 'Y. Type', 'F. Type', 'GSM', 'Dia',	'G/F Order With S.Note Qty', 'G/F S.Note Qty',	'Net Grey Receive Qty',	'G/F Rcv Balance Qty',	'F/F Order with S.Note Qty',	'F/F S.Note Qty',	'F/F Delv Qty',	'F/F Delv. Balance Qty',	'Replacement Delivery',	'F/F Excess Delv.Qty',	'Transfer To',	'Transfer From',	'Return Receive',	'Return Delivery',	'Dyeing Unit',	'Order Sheet Receive Date', 'Cut Plan Start Date',	'Cut Plan End Date', 'Delivery Unit']
+columns = ["Buyer", "Order", 'Style',	'UoF',	'F. Color',	'G. Color', 'Y. Type', 'F. Type', 'GSM', 'Dia',	'G/F Order With S.Note Qty', 'G/F S.Note Qty',	'Net Grey Receive Qty',	'G/F Rcv Balance Qty',	'F/F Order with S.Note Qty',	'F/F S.Note Qty',	'F/F Delv Qty',	'F/F Delv. Balance Qty',	'Replacement Delivery',	'F/F Excess Delv.Qty',	'Transfer To',	'Transfer From',	'Return Receive',	'Return Delivery',	'Dyeing Unit',	'Order Sheet Receive Date', 'Cut Plan Start Date',	'Cut Plan End Date', 'Unit Store']
 df = df.reindex(columns=df.columns.tolist() + columns)
 
 row_idx = 0
@@ -21,6 +21,7 @@ no_of_orders = len(ordersdf['FRS No.'])
 for index, r in ordersdf.iterrows():
     order = r['FRS No.']
     print("Process completed", int((index + 1) * 100 / no_of_orders), "%  <---->", 'FRS:', order)
+    # print("\nCalculating for order: ", order)
     url = 'http://192.168.13.253/mymun/Work%20Order/combineSearchResult.php?Welcome=7&GetOrderNO=' + str(order)
     response = rq.get(url)
 
@@ -33,7 +34,6 @@ for index, r in ordersdf.iterrows():
     row_idx2 = row_idx
     si = 1
     for row in rows:
-        
         if len(row) > 0 and row[0].isnumeric() and row[0] != '0':
             if int(row[0]) < si:
                 break
@@ -59,12 +59,11 @@ for index, r in ordersdf.iterrows():
     row_idx = row_idx2
     si = 0
     for row in rows:
-        if len(row) == 1 and row[0].endswith('Finish Fabric Delivery'):
-            if row[0] == 'Finish Fabric Delivery':
-                df.loc[row_idx, 'Delivery Unit'] = 'Jinnat Complex'
-            else:
-                unit = row[0].split('::')[1].split('||')[0]
-                df.loc[row_idx, 'Delivery Unit'] = unit.strip()
+        if len(row) == 1:
+                if row[0].startswith('Define Unit::'):
+                    df.loc[row_idx, 'Unit Store'] = row[0].split('::')[1]
+                if row[0].startswith('Finish Fabric Delivery'):
+                    df.loc[row_idx, 'Unit Store'] = 'Jinnat'
         if len(row) > 0 and row[0] == 'SL NO.':
             si += 1
         if len(row) > 0 and si == 2 and row[0].isnumeric() and row[0] != '0':
@@ -86,13 +85,46 @@ for index, r in ordersdf.iterrows():
             df.loc[row_idx, 'Cut Plan End Date'] = rows[3][6]
             row_idx += 1
 
-df.to_excel('color_wise_output.xlsx', index=False)
+print("Calculating Combo Status ...")
+combo = pd.DataFrame()
+combo_columns = ['Buyer', 'Order', 'Style', 'UoF', 'F. Color', 'G. Color', 'F. Type', 'F/F Order with S.Note Qty',	'F/F S.Note Qty',	'F/F Delv Qty',	'F/F Delv. Balance Qty',	'Replacement Delivery',	'F/F Excess Delv.Qty',	'Transfer To',	'Transfer From',	'Return Receive',	'Return Delivery',	'Dyeing Unit',	'Order Sheet Receive Date', 'Cut Plan Start Date',	'Cut Plan End Date', 'Unit Store']
+combo = combo.reindex(columns=combo.columns.tolist() + combo_columns)
+dev_tolerance = 0.1
+combo = {}
+for index, row in df.iterrows():
+    order = row['Order']
+    color = row['F. Color']
+    booking_qty = float(row['F/F Order with S.Note Qty'])
+    receive_qty = float(row['F/F Delv Qty'])
+    rec_pctg = min(1.0, round((receive_qty / booking_qty) if booking_qty != 0 else 0, 2))
+
+    if order not in combo:
+        combo[order] = {}
+    if color not in combo[order]:
+        combo[order][color] = []
+    
+    combo[order][color].append([booking_qty, receive_qty, rec_pctg])
+print(combo)
+import json
+
+with open('combo_output.json', 'w', encoding='utf-8') as f:
+    json.dump(combo, f, indent=4, ensure_ascii=False)
+
+for order, colors in combo.items():
+    prev_color = list(colors.keys())[0]
+
+    
+
+
+with pd.ExcelWriter('combo_status_output.xlsx') as writer:
+    df.to_excel(writer, index=False, sheet_name='full_data')
+# df.to_excel('color_wise_output.xlsx', index=False)
 from openpyxl import load_workbook
 from openpyxl.styles import Border, Side, Alignment
 
-wb = load_workbook('color_wise_output.xlsx')
+wb = load_workbook('combo_status_output.xlsx')
 
-ws = wb['Sheet1']
+ws = wb['full_data']
 
 border = Border(left=Side(style='thin', color='0c8748'),
                 right=Side(style='thin', color='0c8748'),
@@ -105,6 +137,6 @@ for row in ws.iter_rows():
     for cell in row:
         cell.border = border
         cell.alignment = align
-wb.save('color_wise_output.xlsx')
+wb.save('combo_status_output.xlsx')
 
 print("\nSuccessfully completed :)")

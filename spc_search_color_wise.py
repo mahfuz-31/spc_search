@@ -47,7 +47,7 @@ for index, r in ordersdf.iterrows():
             df.loc[row_idx, 'G. Color'] = row[3]
             df.loc[row_idx, 'Y. Type'] = row[4]
             df.loc[row_idx, 'F. Type'] = row[5]
-            df.loc[row_idx, 'GSM'] = convert_to_number(row[6])
+            df.loc[row_idx, 'GSM'] = convert_to_number(row[6]) if row[6] != "" else ""
             df.loc[row_idx, 'Dia'] = row[7]
             df.loc[row_idx, 'G/F Order With S.Note Qty'] = convert_to_number(row[8])
             df.loc[row_idx, 'G/F S.Note Qty'] = convert_to_number(row[9])
